@@ -8,48 +8,37 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
 	"net/http"
 	"net/http/cgi"
-	"os"
 )
 
 // Sample handler for AWS secret manager
 //
 // Sample json input:
 //
-//	{
-//	    "task": {
-//	        "id": "67c0938c-9348-4c5e-8624-28218984e09g",
-//	        "type": "secret/awsvault/fetch",
-//	        "data": {
-//	            "secrets": [
-//	              {
-//	                  "config": {
-//	                       "address": "http://localhost:8200",
-//	                       "token": "root"
-//	                  },
-//	                  "path": "secret/data/aws_secret",
-//	                  "key": "aws_secret"
-//		   			 }
-//	            ]
-//	        }
-//	    }
-//	}
+//{
+//    "task": {
+//        "id": "your-task-id",
+//        "driver": "cgi",
+//        "config": {
+//            "repository": {
+//                "clone": "https://github.com/meenaravichandran1/aws-secret-manager-cgi",
+//                "ref": "main"
+//            }
+//        },
+//        "type": "secret/aws/fetch",
+//        "data": {
+//            "action": "connect",
+//            "config": {
+//                "region": "us-east-1",
+//                "access_key": "yourAccessKey",
+//                "secret_key": "yourSecretKey"
+//            },
+//            "secret": {
+//                "name": "your-secret-name"
+//            }
+//        }
+//    }
+//}
 
-// {
-// "task": {
-// "id": "67c0938c-9348-4c5e-8624-28218984e09f",
-// "driver": "cgi",
-// "config": {
-// "repository": {
-// "clone": "https://github.com/vistaarjuneja/user-cgi",
-// "ref": "main"
-// }
-// },
-// "type": "custom/user/find",
-// "data": {
-// "id": 1
-// }
-// }
-// }
 type SecretManagerConfig struct {
 	Region    string `json:"region"`
 	AccessKey string `json:"access_key"`
@@ -122,24 +111,13 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(result)
-	// Also write to stdout for the driver to capture
-	json.NewEncoder(os.Stdout).Encode(result)
 }
 
 func sendErrorResponse(w http.ResponseWriter, err error, message string, status int) {
-	//errResp := NewErrorResponse(err, message, status)
-	//w.Header().Set("Content-Type", "application/json")
-	//w.WriteHeader(status)
-	//json.NewEncoder(w).Encode(errResp)
 	errResp := NewErrorResponse(err, message, status)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-
 	json.NewEncoder(w).Encode(errResp)
-	json.NewEncoder(os.Stdout).Encode(errResp)
-
-	// Also print to stderr for logging
-	fmt.Fprintf(os.Stderr, "Error: %s - %s\n", message, err.Error())
 }
 
 func handleConnect(client *secretsmanager.Client, name string) (bool, error) {
