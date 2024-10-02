@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
 	"net/http"
 	"net/http/cgi"
+	"os"
 )
 
 // Sample handler for AWS secret manager
@@ -121,13 +122,24 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(result)
+	// Also write to stdout for the driver to capture
+	json.NewEncoder(os.Stdout).Encode(result)
 }
 
 func sendErrorResponse(w http.ResponseWriter, err error, message string, status int) {
+	//errResp := NewErrorResponse(err, message, status)
+	//w.Header().Set("Content-Type", "application/json")
+	//w.WriteHeader(status)
+	//json.NewEncoder(w).Encode(errResp)
 	errResp := NewErrorResponse(err, message, status)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
+
 	json.NewEncoder(w).Encode(errResp)
+	json.NewEncoder(os.Stdout).Encode(errResp)
+
+	// Also print to stderr for logging
+	fmt.Fprintf(os.Stderr, "Error: %s - %s\n", message, err.Error())
 }
 
 func handleConnect(client *secretsmanager.Client, name string) (bool, error) {
