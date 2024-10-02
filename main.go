@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
 	"net/http"
@@ -64,28 +65,41 @@ type input struct {
 	Secret *secret              `json:"secret"`
 }
 
+type ErrorResponse struct {
+	Message string `json:"message"`
+	Error   string `json:"error"`
+	Status  int    `json:"status"`
+}
+
+func NewErrorResponse(err error, message string, status int) ErrorResponse {
+	return ErrorResponse{
+		Message: message,
+		Error:   err.Error(),
+		Status:  status,
+	}
+}
+
 func main() {
 	http.HandleFunc("/", handleRequest)
 	cgi.Serve(http.DefaultServeMux)
 }
 
 func handleRequest(w http.ResponseWriter, r *http.Request) {
-	// unmarshal the input
 	in := new(input)
 
 	if err := json.NewDecoder(r.Body).Decode(in); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		sendErrorResponse(w, err, "Failed to decode request body", http.StatusBadRequest)
 		return
 	}
 
 	if in.Config == nil {
-		http.Error(w, "Empty config", http.StatusBadRequest)
+		sendErrorResponse(w, errors.New("empty config"), "Configuration is missing", http.StatusBadRequest)
 		return
 	}
 
 	client, err := newSecretsManagerClient(*in.Config)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		sendErrorResponse(w, err, "Failed to create Secrets Manager client", http.StatusInternalServerError)
 		return
 	}
 
@@ -96,12 +110,12 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	case "connect":
 		result, handlerErr = handleConnect(client, *in.Secret.Name)
 	default:
-		http.Error(w, "Invalid action", http.StatusBadRequest)
+		sendErrorResponse(w, errors.New("invalid action"), "The specified action is not supported", http.StatusBadRequest)
 		return
 	}
 
 	if handlerErr != nil {
-		http.Error(w, handlerErr.Error(), http.StatusInternalServerError)
+		sendErrorResponse(w, handlerErr, "Operation failed", http.StatusInternalServerError)
 		return
 	}
 
@@ -109,16 +123,21 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(result)
 }
 
+func sendErrorResponse(w http.ResponseWriter, err error, message string, status int) {
+	errResp := NewErrorResponse(err, message, status)
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(errResp)
+}
+
 func handleConnect(client *secretsmanager.Client, name string) (bool, error) {
 	_, err := fetchSecret(client, name)
 	if err != nil {
 		var resourceNotFoundErr *types.ResourceNotFoundException
 		if errors.As(err, &resourceNotFoundErr) {
-			// this exception is expected. It means the credentials are correct, but can't find the resource
-			// which means the connectivity to AWS Secrets Manger is ok.
 			return true, nil
 		}
-		return false, err
+		return false, fmt.Errorf("failed to connect to AWS Secrets Manager: %w", err)
 	}
 	return true, nil
 }
