@@ -8,7 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
 	"net/http"
 	"net/http/cgi"
-	"strings"
 )
 
 // Sample handler for AWS secret manager
@@ -88,7 +87,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if in.SecretTask.SecretManagerConfig == nil {
-		sendErrorResponse(w, errors.New("empty config"), "Configuration is missing", http.StatusBadRequest)
+		sendErrorResponse(w, errors.New("emptyy config"), "Configuration is missing", http.StatusBadRequest)
 		return
 	}
 
@@ -101,7 +100,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	var result interface{}
 	var handlerErr error
 
-	switch strings.ToLower(in.SecretTask.Action) {
+	switch in.SecretTask.Action {
 	case "connect":
 		result, handlerErr = handleConnect(client, *in.SecretTask.Secret.Name)
 	default:
