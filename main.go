@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager/types"
 	"net/http"
 	"net/http/cgi"
+	"strings"
 )
 
 // Sample handler for AWS secret manager
@@ -50,13 +51,13 @@ type secret struct {
 }
 
 type input struct {
-	SecretTask *SecretTask `json:"secret_task"`
+	SecretTask *SecretTask `json:"aws_secret_task"`
 }
 
 type SecretTask struct {
-	Action              string               `json:"action"`
-	SecretManagerConfig *SecretManagerConfig `json:"secret_manager_config"`
-	Secret              *secret              `json:"secret"`
+	Action string               `json:"action"`
+	Config *SecretManagerConfig `json:"aws_secret_manager_config"`
+	Secret *secret              `json:"secret"`
 }
 
 type ErrorResponse struct {
@@ -86,12 +87,12 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if in.SecretTask.SecretManagerConfig == nil {
-		sendErrorResponse(w, errors.New("emptyy config"), "Configuration is missing", http.StatusBadRequest)
+	if in.SecretTask.Config == nil {
+		sendErrorResponse(w, errors.New("empty config"), "Configuration is missing", http.StatusBadRequest)
 		return
 	}
 
-	client, err := newSecretsManagerClient(*in.SecretTask.SecretManagerConfig)
+	client, err := newSecretsManagerClient(*in.SecretTask.Config)
 	if err != nil {
 		sendErrorResponse(w, err, "Failed to create Secrets Manager client", http.StatusInternalServerError)
 		return
@@ -100,7 +101,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	var result interface{}
 	var handlerErr error
 
-	switch in.SecretTask.Action {
+	switch strings.ToLower(in.SecretTask.Action) {
 	case "connect":
 		result, handlerErr = handleConnect(client, *in.SecretTask.Secret.Name)
 	default:
