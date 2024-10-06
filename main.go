@@ -51,13 +51,13 @@ type secret struct {
 }
 
 type input struct {
-	SecretTask *SecretTask `json:"aws_secret_task"`
+	SecretTask *SecretTask `json:"secret_task"`
 }
 
 type SecretTask struct {
 	Action string               `json:"action"`
-	Config *SecretManagerConfig `json:"aws_secret_manager_config"`
-	Secret *secret              `json:"secret"`
+	Config *SecretManagerConfig `json:"store_config"`
+	Secret *secret              `json:"secret_config"`
 }
 
 type ErrorResponse struct {
