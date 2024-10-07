@@ -101,7 +101,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if in.Config == nil {
-		sendErrorResponse(w, errors.New("empty config"), "Configuration is missing", http.StatusBadRequest)
+		sendErrorResponseDebug(w, errors.New("empty config"), "Configuration is missing", http.StatusBadRequest, in)
 		return
 	}
 
