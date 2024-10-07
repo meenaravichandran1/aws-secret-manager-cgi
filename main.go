@@ -46,10 +46,14 @@ type SecretManagerConfig struct {
 	SecretKey string `json:"secret_key"`
 }
 
-type input struct {
+type SecretParams struct {
 	Action string               `json:"secret_operation"`
 	Config *SecretManagerConfig `json:"store_config"`
 	Secret *Secret              `json:"secret"`
+}
+
+type input struct {
+	SecretParams *SecretParams `json:"secret_params"`
 }
 
 type Secret struct {
@@ -100,12 +104,12 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if in.Config == nil {
+	if in.SecretParams.Config == nil {
 		sendErrorResponseDebug(w, errors.New("empty config"), "Configuration is missing", http.StatusBadRequest, in)
 		return
 	}
 
-	client, err := newSecretsManagerClient(*in.Config)
+	client, err := newSecretsManagerClient(*in.SecretParams.Config)
 	if err != nil {
 		sendErrorResponse(w, err, "Failed to create Secrets Manager client", http.StatusInternalServerError)
 		return
@@ -114,9 +118,9 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	var result interface{}
 	var handlerErr error
 
-	switch strings.ToLower(in.Action) {
+	switch strings.ToLower(in.SecretParams.Action) {
 	case "connect":
-		result, handlerErr = handleConnect(client, *in.Secret.Name)
+		result, handlerErr = handleConnect(client, *in.SecretParams.Secret.Name)
 	default:
 		sendErrorResponse(w, errors.New("invalid action"), "The specified action is not supported", http.StatusBadRequest)
 		return
