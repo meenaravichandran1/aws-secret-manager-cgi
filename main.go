@@ -125,14 +125,14 @@ func sendErrorResponse(w http.ResponseWriter, err error, message string, status 
 	json.NewEncoder(w).Encode(errResp)
 }
 
-func handleConnect(client *secretsmanager.Client, name string) (bool, error) {
+func handleConnect(client *secretsmanager.Client, name string) (map[string]interface{}, error) {
 	_, err := fetchSecret(client, name)
 	if err != nil {
 		var resourceNotFoundErr *types.ResourceNotFoundException
 		if errors.As(err, &resourceNotFoundErr) {
-			return true, nil
+			return map[string]interface{}{"valid": true}, nil
 		}
-		return false, fmt.Errorf("failed to connect to AWS Secrets Manager: %w", err)
+		return map[string]interface{}{"valid": false}, fmt.Errorf("failed to connect to AWS Secrets Manager: %w", err)
 	}
-	return true, nil
+	return map[string]interface{}{"valid": true}, nil
 }
