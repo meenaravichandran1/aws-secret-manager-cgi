@@ -46,18 +46,14 @@ type SecretManagerConfig struct {
 	SecretKey string `json:"secret_key"`
 }
 
-type secret struct {
-	Name *string `json:"name"`
-}
-
 type input struct {
-	SecretTask *SecretTask `json:"secret_task"`
+	Action string               `json:"secret_operation"`
+	Config *SecretManagerConfig `json:"store_config"`
+	Secret *Secret              `json:"secret"`
 }
 
-type SecretTask struct {
-	Action string               `json:"action"`
-	Config *SecretManagerConfig `json:"store_config"`
-	Secret *secret              `json:"secret_config"`
+type Secret struct {
+	Name *string `json:"name"`
 }
 
 type ErrorResponse struct {
@@ -86,13 +82,13 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 		sendErrorResponse(w, err, "Failed to decode request body", http.StatusBadRequest)
 		return
 	}
+	//
+	//if in.AWSSecretParams.Config == nil {
+	//	sendErrorResponse(w, errors.New("empty config"), "Configuration is missing", http.StatusBadRequest)
+	//	return
+	//}
 
-	if in.SecretTask.Config == nil {
-		sendErrorResponse(w, errors.New("empty config"), "Configuration is missing", http.StatusBadRequest)
-		return
-	}
-
-	client, err := newSecretsManagerClient(*in.SecretTask.Config)
+	client, err := newSecretsManagerClient(*in.Config)
 	if err != nil {
 		sendErrorResponse(w, err, "Failed to create Secrets Manager client", http.StatusInternalServerError)
 		return
@@ -101,9 +97,9 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	var result interface{}
 	var handlerErr error
 
-	switch strings.ToLower(in.SecretTask.Action) {
+	switch strings.ToLower(in.Action) {
 	case "connect":
-		result, handlerErr = handleConnect(client, *in.SecretTask.Secret.Name)
+		result, handlerErr = handleConnect(client, *in.Secret.Name)
 	default:
 		sendErrorResponse(w, errors.New("invalid action"), "The specified action is not supported", http.StatusBadRequest)
 		return
