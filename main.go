@@ -66,27 +66,11 @@ type ErrorResponse struct {
 	Status  int    `json:"status"`
 }
 
-type ErrorResponseDebug struct {
-	Error   string      `json:"error"`
-	Message string      `json:"message"`
-	Details string      `json:"details,omitempty"` // Optional field for error details
-	Input   interface{} `json:"input,omitempty"`   // Optional field for input object
-}
-
 func NewErrorResponse(err error, message string, status int) ErrorResponse {
 	return ErrorResponse{
 		Message: message,
 		Error:   err.Error(),
 		Status:  status,
-	}
-}
-
-func NewErrorResponseDebug(err error, message string, status int, input interface{}) ErrorResponseDebug {
-	return ErrorResponseDebug{
-		Error:   http.StatusText(status),
-		Message: message,
-		Details: err.Error(),
-		Input:   input,
 	}
 }
 
@@ -100,12 +84,12 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 
 	if err := json.NewDecoder(r.Body).Decode(in); err != nil {
 
-		sendErrorResponseDebug(w, err, "Failed to decode request body", http.StatusBadRequest, in)
+		sendErrorResponse(w, err, "Failed to decode request body", http.StatusBadRequest)
 		return
 	}
 
 	if in.SecretParams.Config == nil {
-		sendErrorResponseDebug(w, errors.New("empty config"), "Configuration is missing", http.StatusBadRequest, in)
+		sendErrorResponse(w, errors.New("empty config"), "Configuration is missing", http.StatusBadRequest)
 		return
 	}
 
@@ -137,13 +121,6 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 
 func sendErrorResponse(w http.ResponseWriter, err error, message string, status int) {
 	errResp := NewErrorResponse(err, message, status)
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(errResp)
-}
-
-func sendErrorResponseDebug(w http.ResponseWriter, err error, message string, status int, input interface{}) {
-	errResp := NewErrorResponseDebug(err, message, status, input)
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(errResp)
