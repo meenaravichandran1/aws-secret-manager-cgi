@@ -1,11 +1,11 @@
-package main
+package secrets
 
 import (
 	"context"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
 )
 
-func fetchSecret(client *secretsmanager.Client, secretName string) (*secretsmanager.GetSecretValueOutput, error) {
+func getSecret(client *secretsmanager.Client, secretName string) (*secretsmanager.GetSecretValueOutput, error) {
 	input := &secretsmanager.GetSecretValueInput{
 		SecretId: &secretName,
 	}
