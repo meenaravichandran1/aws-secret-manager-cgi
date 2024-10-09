@@ -4,6 +4,7 @@ Handler for AWS secret manager
 
 Sample json input:
 
+```json
 {
     "task": {
         "id": "your-task-id",
