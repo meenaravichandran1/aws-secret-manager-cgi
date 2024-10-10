@@ -11,9 +11,14 @@ type SecretParams struct {
 }
 
 type SecretManagerConfig struct {
-	Region    string `json:"region"`
-	AccessKey string `json:"access_key"`
-	SecretKey string `json:"secret_key"`
+	Region                string `json:"region"`
+	AccessKey             string `json:"access_key"`
+	SecretKey             string `json:"secret_key"`
+	AssumeIamRoleOnRunner bool   `json:"assume_iam_role"`
+	AssumeStsRoleOnRunner bool   `json:"assume_sts_role"`
+	AssumeStsRoleDuration int    `json:"assume_sts_role_duration"`
+	RoleArn               string `json:"role_arn"`
+	ExternalName          string `json:"external_name"`
 }
 
 type Secret struct {

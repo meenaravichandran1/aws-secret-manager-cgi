@@ -21,7 +21,7 @@ func HandleRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client, err := New(*in.SecretParams.Config)
+	client, err := New(in.SecretParams.Config)
 	if err != nil {
 		SendErrorResponse(w, err, "Failed to create Secret Manager client", http.StatusInternalServerError)
 		return
