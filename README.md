@@ -25,7 +25,12 @@ Sample json input:
                     "access_key": "yourAccessKey",
                     "secret_key": "yourSecretKey"
                 },
+                // primary secret to act on; used in create, read, delete, update, rename flows
                 "secret": {
+                    "name": "your-secret-name"
+                }
+                // used only in update, rename flows
+                 "existing_secret": {
                     "name": "your-secret-name"
                 }
             }

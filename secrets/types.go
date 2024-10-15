@@ -5,9 +5,10 @@ type input struct {
 }
 
 type SecretParams struct {
-	Action string               `json:"secret_operation"`
-	Config *SecretManagerConfig `json:"store_config"`
-	Secret *Secret              `json:"secret"`
+	Action         string               `json:"secret_operation"`
+	Config         *SecretManagerConfig `json:"store_config"`
+	Secret         *Secret              `json:"secret"`
+	ExistingSecret *Secret              `json:"existing_secret"`
 }
 
 type SecretManagerConfig struct {
@@ -19,15 +20,32 @@ type SecretManagerConfig struct {
 	AssumeStsRoleDuration int    `json:"assume_sts_role_duration"`
 	RoleArn               string `json:"role_arn"`
 	ExternalName          string `json:"external_name"`
+	Prefix                string `json:"prefix,omitempty"`
 }
 
 type Secret struct {
-	Name *string `json:"name"`
+	// from runner perspective, name is always fully qualified including the prefix, path, etc. Either it should be sent from manager or populated it in the cgi
+	Name      *string `json:"name"`
+	Plaintext *string `json:"plaintext"`
 }
 
 type ValidationResponse struct {
 	IsValid bool   `json:"valid"`
 	Error   *Error `json:"error"`
+}
+
+type OperationStatus string
+
+var (
+	OperationStatusSuccess OperationStatus = "SUCCESS"
+	OperationStatusFailure OperationStatus = "FAILURE"
+)
+
+type OperationResponse struct {
+	Name            string          `json:"name"`
+	Message         string          `json:"message"`
+	Error           *Error          `json:"error"`
+	OperationStatus OperationStatus `json:"status"`
 }
 
 type Error struct {
@@ -40,4 +58,9 @@ type ErrorResponse struct {
 	Message string `json:"message"`
 	Error   string `json:"error"`
 	Status  int    `json:"status"`
+}
+
+// SecretResponse for fetch secret tasks
+type SecretResponse struct {
+	Value string `json:"value"`
 }

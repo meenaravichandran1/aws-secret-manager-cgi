@@ -87,7 +87,8 @@ func getSTSCredentialsProvider(ctx context.Context, secretManagerConfig SecretMa
 	input := &sts.AssumeRoleInput{
 		RoleArn:         aws.String(secretManagerConfig.RoleArn),
 		RoleSessionName: aws.String(uuid.New().String()),
-		ExternalId:      aws.String(secretManagerConfig.ExternalName),
+		// TODO send ExternalId as null, not as empty string - validation fails in AWS
+		ExternalId: aws.String(secretManagerConfig.ExternalName),
 	}
 
 	if secretManagerConfig.AssumeStsRoleDuration > 0 {

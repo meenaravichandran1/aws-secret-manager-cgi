@@ -1,6 +1,7 @@
 package secrets
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"net/http"
@@ -27,11 +28,24 @@ func HandleRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	ctx := context.Background()
+	operation := strings.ToLower(in.SecretParams.Action)
+
 	var result interface{}
 
-	switch strings.ToLower(in.SecretParams.Action) {
+	switch operation {
 	case "connect":
-		result, _ = HandleConnect(client, *in.SecretParams.Secret.Name)
+		result, _ = HandleConnect(ctx, client, in.SecretParams.Secret.Name)
+	case "fetch":
+		result, _ = HandleFetch(ctx, client, *in.SecretParams.Secret.Name, in.SecretParams.Config)
+	case "create":
+		result, _ = HandleUpsert(ctx, client, in.SecretParams.Secret, nil, in.SecretParams.Config)
+	case "update":
+		result, _ = HandleUpsert(ctx, client, in.SecretParams.Secret, in.SecretParams.ExistingSecret, in.SecretParams.Config)
+	case "rename":
+		result, _ = HandleRename(ctx, client, in.SecretParams.Secret, in.SecretParams.ExistingSecret, in.SecretParams.Config)
+	case "delete":
+		result, _ = HandleDelete(ctx, client, in.SecretParams.Secret, in.SecretParams.Config)
 	default:
 		SendErrorResponse(w, errors.New("invalid action"), "The specified action is not supported", http.StatusBadRequest)
 		return

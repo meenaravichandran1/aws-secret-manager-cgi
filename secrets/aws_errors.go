@@ -16,6 +16,12 @@ func getErrorType(err error) string {
 	var invalidParameterException *types.InvalidParameterException
 	var invalidRequestException *types.InvalidRequestException
 	var resourceNotFoundException *types.ResourceNotFoundException
+	var limitExceededException *types.LimitExceededException
+	var encryptionFailure *types.EncryptionFailure
+	var resourceExistsException *types.ResourceExistsException
+	var malformedPolicyDocumentException *types.MalformedPolicyDocumentException
+	var preconditionNotMetException *types.PreconditionNotMetException
+
 	switch {
 	case errors.As(err, &decryptionFailure):
 		errorType = "DecryptionFailure"
@@ -27,6 +33,16 @@ func getErrorType(err error) string {
 		errorType = "InvalidRequestException"
 	case errors.As(err, &resourceNotFoundException):
 		errorType = "ResourceNotFoundException"
+	case errors.As(err, &limitExceededException):
+		errorType = "LimitExceededException"
+	case errors.As(err, &encryptionFailure):
+		errorType = "EncryptionFailure"
+	case errors.As(err, &resourceExistsException):
+		errorType = "ResourceExistsException"
+	case errors.As(err, &malformedPolicyDocumentException):
+		errorType = "MalformedPolicyDocumentException"
+	case errors.As(err, &preconditionNotMetException):
+		errorType = "PreconditionNotMetException"
 	default:
 		// For other error types, try to get more information
 		var smithyErr smithy.APIError
