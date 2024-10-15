@@ -24,7 +24,7 @@ type SecretManagerConfig struct {
 }
 
 type Secret struct {
-	// from runner perspective, name is always fully qualified including the prefix, path, etc. Either it should be sent from manager or populated it in the cgi
+	// from runner perspective, name is always fully qualified including the prefix, path, etc.
 	Name      *string `json:"name"`
 	Plaintext *string `json:"plaintext"`
 }

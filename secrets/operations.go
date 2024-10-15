@@ -42,8 +42,6 @@ func HandleConnect(ctx context.Context, client *secretsmanager.Client, name *str
 
 func HandleFetch(ctx context.Context, client *secretsmanager.Client, name string, storeConfig *SecretManagerConfig) (*SecretResponse, error) {
 	logrus.Infof("Received request for fetching AWS Secret: %s", name)
-	//name = GetFullPath(storeConfig.Prefix, name)
-	// TODO get the name here instead of cg-manager for uniformity - wrong get the name in cg-manager for uniformity
 	secretName, jsonKey := extractSecretInfo(name)
 	secretOutput, err := getSecret(ctx, client, &secretName)
 	if err != nil {
@@ -116,8 +114,6 @@ func Update(ctx context.Context, client *secretsmanager.Client, secret *Secret) 
 }
 
 func HandleUpsert(ctx context.Context, client *secretsmanager.Client, secret *Secret, existingSecret *Secret, storeConfig *SecretManagerConfig) (*OperationResponse, error) {
-	//fullSecretName := GetFullPath(storeConfig.Prefix, *secret.Name)
-	//secret.Name = &fullSecretName
 	secretExists := false
 	if _, err := fetchSecretInternal(ctx, client, *secret.Name); err != nil {
 		var resourceNotFoundErr *types.ResourceNotFoundException
@@ -153,13 +149,10 @@ func HandleUpsert(ctx context.Context, client *secretsmanager.Client, secret *Se
 		return nil, err
 	}
 
-	// TODO send this from manager
 	if existingSecret != nil {
-		//existingSecretName := GetFullPath(storeConfig.Prefix, *existingSecret.Name)
-		//existingSecret.Name = &existingSecretName
 		oldFullSecretName := *existingSecret.Name
-		logrus.Infof("Old secret name is %s", oldFullSecretName)
-		logrus.Infof("New secret name is %s", *secret.Name)
+		logrus.Debugf("Old secret name is %s", oldFullSecretName)
+		logrus.Debugf("New secret name is %s", *secret.Name)
 		if oldFullSecretName != "" && oldFullSecretName != *secret.Name {
 			logrus.Infof("Old path of the secret %s is different than the current one %s. Deleting the old secret",
 				oldFullSecretName, *secret.Name)
@@ -175,7 +168,6 @@ func HandleUpsert(ctx context.Context, client *secretsmanager.Client, secret *Se
 func HandleRename(ctx context.Context, client *secretsmanager.Client, secret *Secret, existingSecret *Secret, storeConfig *SecretManagerConfig) (*OperationResponse, error) {
 	logrus.Infof("Received request for renaming AWS Secret: %s", *secret.Name)
 	//fetch existing record - if not found, nothing to update because we won't know what value to update
-	//existingSecretName := GetFullPath(storeConfig.Prefix, *existingSecret.Name)
 	secretValue, err := fetchSecretInternal(ctx, client, *existingSecret.Name)
 	if err != nil {
 		errorType := getErrorType(err)
@@ -197,7 +189,6 @@ func HandleRename(ctx context.Context, client *secretsmanager.Client, secret *Se
 
 // TODO rename and rewrite especially the json stuff
 func fetchSecretInternal(ctx context.Context, client *secretsmanager.Client, name string) (string, error) {
-
 	secretName, jsonKey := extractSecretInfo(name)
 	secretOutput, err := getSecret(ctx, client, &secretName)
 	if err != nil {
@@ -212,8 +203,6 @@ func fetchSecretInternal(ctx context.Context, client *secretsmanager.Client, nam
 
 func HandleDelete(ctx context.Context, client *secretsmanager.Client, secret *Secret, storeConfig *SecretManagerConfig) (*OperationResponse, error) {
 	logrus.Infof("Received request for deleting AWS Secret: %s", *secret.Name)
-	//fullSecretName := GetFullPath(storeConfig.Prefix, *secret.Name)
-	//secret.Name = &fullSecretName
 	output, err := deleteSecret(ctx, client, secret)
 	if err != nil {
 		errorType := getErrorType(err)
