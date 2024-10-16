@@ -8,6 +8,11 @@ import (
 	"strings"
 )
 
+const (
+	DefaultBasePath = "harness"
+	PathSeparator   = "/"
+)
+
 // isValidJSON checks if a string is valid JSON
 func isValidJSON(input string) bool {
 	var js json.RawMessage
@@ -70,4 +75,18 @@ func decode(s string, decode bool, name string) (string, error) {
 		return string(decoded), nil
 	}
 	return s, nil
+}
+
+func getFullPath(basePath, secretPath string) string {
+	if basePath = strings.TrimSpace(basePath); basePath == "" {
+		return DefaultBasePath + PathSeparator + secretPath
+	}
+
+	basePath = strings.Trim(basePath, PathSeparator)
+	return basePath + PathSeparator + secretPath
+}
+
+func getFullPathWithoutStrippingPrefixSlash(basePath, secretPath string) string {
+	basePath = strings.TrimRight(basePath, PathSeparator)
+	return basePath + PathSeparator + secretPath
 }
