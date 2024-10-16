@@ -1,6 +1,7 @@
-package secrets
+package awssecrets
 
 import (
+	"aws-secret-manager-cgi/common"
 	"context"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
@@ -22,7 +23,7 @@ func getSecret(ctx context.Context, client *secretsmanager.Client, secretName st
 }
 
 // createSecret creates the secret value in AWS Secrets Manager
-func createSecret(ctx context.Context, client *secretsmanager.Client, secret Secret) (*secretsmanager.CreateSecretOutput, error) {
+func createSecret(ctx context.Context, client *secretsmanager.Client, secret common.Secret) (*secretsmanager.CreateSecretOutput, error) {
 	input := &secretsmanager.CreateSecretInput{
 		Name:         aws.String(secret.Name),
 		SecretString: secret.Plaintext,
@@ -41,7 +42,7 @@ func createSecret(ctx context.Context, client *secretsmanager.Client, secret Sec
 }
 
 // updateSecret updates the secret value in AWS Secrets Manager
-func updateSecret(ctx context.Context, client *secretsmanager.Client, secret Secret) (*secretsmanager.UpdateSecretOutput, error) {
+func updateSecret(ctx context.Context, client *secretsmanager.Client, secret common.Secret) (*secretsmanager.UpdateSecretOutput, error) {
 	input := &secretsmanager.UpdateSecretInput{
 		SecretId:     aws.String(secret.Name),
 		SecretString: secret.Plaintext,
@@ -56,7 +57,7 @@ func updateSecret(ctx context.Context, client *secretsmanager.Client, secret Sec
 }
 
 // deleteSecret deletes the secret value in AWS Secrets Manager
-func deleteSecret(ctx context.Context, client *secretsmanager.Client, secret Secret) (*secretsmanager.DeleteSecretOutput, error) {
+func deleteSecret(ctx context.Context, client *secretsmanager.Client, secret common.Secret) (*secretsmanager.DeleteSecretOutput, error) {
 	input := &secretsmanager.DeleteSecretInput{
 		SecretId:                   aws.String(secret.Name),
 		ForceDeleteWithoutRecovery: aws.Bool(true),

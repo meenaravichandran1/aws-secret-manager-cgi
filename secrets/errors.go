@@ -1,12 +1,13 @@
 package secrets
 
 import (
+	"aws-secret-manager-cgi/common"
 	"encoding/json"
 	"net/http"
 )
 
-func NewErrorResponse(err error, message string, status int) ErrorResponse {
-	return ErrorResponse{
+func NewErrorResponse(err error, message string, status int) common.ErrorResponse {
+	return common.ErrorResponse{
 		Message: message,
 		Error:   err.Error(),
 		Status:  status,

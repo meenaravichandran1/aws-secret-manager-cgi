@@ -1,6 +1,7 @@
-package secrets
+package awssecrets
 
 import (
+	"aws-secret-manager-cgi/common"
 	"context"
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -13,7 +14,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func New(secretManagerConfig SecretManagerConfig) (*secretsmanager.Client, error) {
+func createAWSClient(secretManagerConfig common.SecretManagerConfig) (*secretsmanager.Client, error) {
 	ctx := context.Background()
 	var awsConfig aws.Config
 	var err error
@@ -50,7 +51,7 @@ func loadIAMRoleConfig(ctx context.Context, region string, retryer func() aws.Re
 	return config.LoadDefaultConfig(ctx, config.WithRegion(region), config.WithRetryer(retryer))
 }
 
-func loadSTSRoleConfig(ctx context.Context, secretManagerConfig SecretManagerConfig, retryer func() aws.Retryer) (aws.Config, error) {
+func loadSTSRoleConfig(ctx context.Context, secretManagerConfig common.SecretManagerConfig, retryer func() aws.Retryer) (aws.Config, error) {
 	logrus.Infof("Assuming STS role on runner: %s", secretManagerConfig.RoleArn)
 	credProvider, err := getSTSCredentialsProvider(ctx, secretManagerConfig)
 	if err != nil {
@@ -64,7 +65,7 @@ func loadSTSRoleConfig(ctx context.Context, secretManagerConfig SecretManagerCon
 	)
 }
 
-func loadStaticCredentialsConfig(ctx context.Context, secretManagerConfig SecretManagerConfig, retryer func() aws.Retryer) (aws.Config, error) {
+func loadStaticCredentialsConfig(ctx context.Context, secretManagerConfig common.SecretManagerConfig, retryer func() aws.Retryer) (aws.Config, error) {
 	logrus.Info("Using static credentials")
 	// TODO check if below checks are needed
 	if secretManagerConfig.AccessKey == "" {
@@ -81,7 +82,7 @@ func loadStaticCredentialsConfig(ctx context.Context, secretManagerConfig Secret
 	)
 }
 
-func getSTSCredentialsProvider(ctx context.Context, secretManagerConfig SecretManagerConfig) (aws.CredentialsProvider, error) {
+func getSTSCredentialsProvider(ctx context.Context, secretManagerConfig common.SecretManagerConfig) (aws.CredentialsProvider, error) {
 	if secretManagerConfig.RoleArn == "" {
 		return nil, fmt.Errorf("RoleARN must be provided for STS role assumption")
 	}

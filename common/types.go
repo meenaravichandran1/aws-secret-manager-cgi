@@ -1,6 +1,8 @@
-package secrets
+package common
 
-type input struct {
+import "context"
+
+type Input struct {
 	SecretParams *SecretParams `json:"secret_params"`
 }
 
@@ -64,4 +66,14 @@ type ErrorResponse struct {
 // SecretResponse for fetch secret tasks
 type SecretResponse struct {
 	Value string `json:"value"`
+}
+
+type SecretManager interface {
+	Connect(ctx context.Context, name string) (*ValidationResponse, error)
+	ValidateReference(ctx context.Context, name string) (*ValidationResponse, error)
+	FetchSecret(ctx context.Context, secret Secret) (*SecretResponse, error)
+	CreateSecret(ctx context.Context, secret Secret) (*OperationResponse, error)
+	UpsertSecret(ctx context.Context, secret Secret, existingSecret *Secret) (*OperationResponse, error)
+	RenameSecret(ctx context.Context, secret Secret, existingSecret *Secret) (*OperationResponse, error)
+	DeleteSecret(ctx context.Context, secret Secret) (*OperationResponse, error)
 }
