@@ -10,7 +10,7 @@ func getErrorType(err error) string {
 
 	var errorType string
 
-	// Check for specific AWS Secrets Manager error types
+	// Check for specific AWS Secrets Manager error types, this is used to provide hints and suggestions
 	var decryptionFailure *types.DecryptionFailure
 	var internalServiceError *types.InternalServiceError
 	var invalidParameterException *types.InvalidParameterException
@@ -18,9 +18,6 @@ func getErrorType(err error) string {
 	var resourceNotFoundException *types.ResourceNotFoundException
 	var limitExceededException *types.LimitExceededException
 	var encryptionFailure *types.EncryptionFailure
-	var resourceExistsException *types.ResourceExistsException
-	var malformedPolicyDocumentException *types.MalformedPolicyDocumentException
-	var preconditionNotMetException *types.PreconditionNotMetException
 
 	switch {
 	case errors.As(err, &decryptionFailure):
@@ -37,12 +34,6 @@ func getErrorType(err error) string {
 		errorType = "LimitExceededException"
 	case errors.As(err, &encryptionFailure):
 		errorType = "EncryptionFailure"
-	case errors.As(err, &resourceExistsException):
-		errorType = "ResourceExistsException"
-	case errors.As(err, &malformedPolicyDocumentException):
-		errorType = "MalformedPolicyDocumentException"
-	case errors.As(err, &preconditionNotMetException):
-		errorType = "PreconditionNotMetException"
 	default:
 		// For other error types, try to get more information
 		var smithyErr smithy.APIError

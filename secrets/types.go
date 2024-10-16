@@ -25,7 +25,7 @@ type SecretManagerConfig struct {
 
 type Secret struct {
 	// from runner perspective, name is always fully qualified including the prefix, path, etc.
-	Name      *string `json:"name"`
+	Name      string  `json:"name"`
 	Plaintext *string `json:"plaintext"`
 	Base64    bool    `json:"base64"`
 }

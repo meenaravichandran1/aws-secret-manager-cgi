@@ -8,9 +8,9 @@ import (
 )
 
 // getSecret fetches the secret value from AWS Secrets Manager
-func getSecret(ctx context.Context, client *secretsmanager.Client, secretName *string) (*secretsmanager.GetSecretValueOutput, error) {
+func getSecret(ctx context.Context, client *secretsmanager.Client, secretName string) (*secretsmanager.GetSecretValueOutput, error) {
 	input := &secretsmanager.GetSecretValueInput{
-		SecretId: secretName,
+		SecretId: aws.String(secretName),
 	}
 
 	output, err := client.GetSecretValue(ctx, input)
@@ -21,9 +21,10 @@ func getSecret(ctx context.Context, client *secretsmanager.Client, secretName *s
 	return output, nil
 }
 
-func createSecret(ctx context.Context, client *secretsmanager.Client, secret *Secret) (*secretsmanager.CreateSecretOutput, error) {
+// createSecret creates the secret value in AWS Secrets Manager
+func createSecret(ctx context.Context, client *secretsmanager.Client, secret Secret) (*secretsmanager.CreateSecretOutput, error) {
 	input := &secretsmanager.CreateSecretInput{
-		Name:         secret.Name,
+		Name:         aws.String(secret.Name),
 		SecretString: secret.Plaintext,
 		Tags: []types.Tag{{
 			Key:   aws.String("createdBy"),
@@ -39,9 +40,10 @@ func createSecret(ctx context.Context, client *secretsmanager.Client, secret *Se
 	return output, nil
 }
 
-func updateSecret(ctx context.Context, client *secretsmanager.Client, secret *Secret) (*secretsmanager.UpdateSecretOutput, error) {
+// updateSecret updates the secret value in AWS Secrets Manager
+func updateSecret(ctx context.Context, client *secretsmanager.Client, secret Secret) (*secretsmanager.UpdateSecretOutput, error) {
 	input := &secretsmanager.UpdateSecretInput{
-		SecretId:     secret.Name,
+		SecretId:     aws.String(secret.Name),
 		SecretString: secret.Plaintext,
 	}
 
@@ -53,9 +55,10 @@ func updateSecret(ctx context.Context, client *secretsmanager.Client, secret *Se
 	return output, nil
 }
 
-func deleteSecret(ctx context.Context, client *secretsmanager.Client, secret *Secret) (*secretsmanager.DeleteSecretOutput, error) {
+// deleteSecret deletes the secret value in AWS Secrets Manager
+func deleteSecret(ctx context.Context, client *secretsmanager.Client, secret Secret) (*secretsmanager.DeleteSecretOutput, error) {
 	input := &secretsmanager.DeleteSecretInput{
-		SecretId:                   secret.Name,
+		SecretId:                   aws.String(secret.Name),
 		ForceDeleteWithoutRecovery: aws.Bool(true),
 	}
 

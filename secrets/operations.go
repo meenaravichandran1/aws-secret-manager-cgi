@@ -10,8 +10,8 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func HandleConnect(ctx context.Context, client *secretsmanager.Client, name *string) (*ValidationResponse, error) {
-	logrus.Infof("Received request for validating AWS Secret Manager: %s", *name)
+func HandleConnect(ctx context.Context, client *secretsmanager.Client, name string) (*ValidationResponse, error) {
+	logrus.Infof("Received request for validating AWS Secret Manager: %s", name)
 	_, err := getSecret(ctx, client, name)
 	if err != nil {
 		var resourceNotFoundErr *types.ResourceNotFoundException
@@ -41,18 +41,18 @@ func HandleConnect(ctx context.Context, client *secretsmanager.Client, name *str
 	}, nil
 }
 
-func HandleFetch(ctx context.Context, client *secretsmanager.Client, secret *Secret) (*SecretResponse, error) {
-	logrus.Infof("Received request for fetching AWS Secret: %s", *secret.Name)
-	secretName, jsonKey := extractSecretInfo(*secret.Name)
-	secretOutput, err := getSecret(ctx, client, &secretName)
+func HandleFetch(ctx context.Context, client *secretsmanager.Client, secret Secret) (*SecretResponse, error) {
+	logrus.Infof("Received request for fetching AWS Secret: %s", secret.Name)
+	secretName, jsonKey := extractSecretInfo(secret.Name)
+	secretOutput, err := getSecret(ctx, client, secretName)
 	if err != nil {
-		logrus.Errorf("Failed to fetch secret %s, error: %v", *secret.Name, err.Error())
+		logrus.Errorf("Failed to fetch secret %s, error: %v", secretName, err.Error())
 		return nil, fmt.Errorf("could not find secret key: %s. Failed with error %v", secretName, err.Error())
 	}
-	logrus.Infof("Successfully fetched secret %s", *secret.Name)
+	logrus.Infof("Successfully fetched secret %s", secretName)
 	secretValue := *secretOutput.SecretString
 
-	decodedSecretValue, err := decode(secretValue, secret.Base64, *secret.Name)
+	decodedSecretValue, err := decode(secretValue, secret.Base64, secretName)
 	if !isValidJSON(decodedSecretValue) {
 		return &SecretResponse{
 			Value: decodedSecretValue,
@@ -76,24 +76,23 @@ func decode(s string, decode bool, name string) (string, error) {
 	return s, nil
 }
 
-func HandleCreate(ctx context.Context, client *secretsmanager.Client, secret *Secret) (*OperationResponse, error) {
-	logrus.Infof("Received request for creating AWS Secret: %s", *secret.Name)
+func HandleCreate(ctx context.Context, client *secretsmanager.Client, secret Secret) (*OperationResponse, error) {
+	secretName := secret.Name
+	logrus.Infof("Received request for creating AWS Secret: %s", secretName)
 	output, err := createSecret(ctx, client, secret)
 	if err != nil {
-		errorType := getErrorType(err)
-		logrus.Errorf("Failed to create secret %s, errorType: %s, error: %v", *secret.Name, errorType, err.Error())
+		logrus.Errorf("Failed to create secret %s, error: %v", secretName, err.Error())
 		return &OperationResponse{
-			Name:            *secret.Name,
+			Name:            secretName,
 			Message:         "Failed to create secret in AWS Secret Manager",
 			OperationStatus: OperationStatusFailure,
 			Error: &Error{
 				Message: "Failed to create secret in AWS Secret Manager",
-				Type:    errorType,
 				Reason:  err.Error(),
 			},
 		}, nil
 	}
-	logrus.Infof("Successfully created secret %s", *secret.Name)
+	logrus.Infof("Successfully created secret %s", secretName)
 	return &OperationResponse{
 		Name:            *output.Name,
 		Message:         "Successfully created secret in AWS Secret Manager",
@@ -102,24 +101,23 @@ func HandleCreate(ctx context.Context, client *secretsmanager.Client, secret *Se
 	}, nil
 }
 
-func Update(ctx context.Context, client *secretsmanager.Client, secret *Secret) (*OperationResponse, error) {
-	logrus.Infof("Received request for updating AWS Secret: %s", *secret.Name)
+func Update(ctx context.Context, client *secretsmanager.Client, secret Secret) (*OperationResponse, error) {
+	secretName := secret.Name
+	logrus.Infof("Received request for updating AWS Secret: %s", secretName)
 	output, err := updateSecret(ctx, client, secret)
 	if err != nil {
-		errorType := getErrorType(err)
-		logrus.Errorf("Failed to update secret %s, errorType: %s, error: %v", *secret.Name, errorType, err.Error())
+		logrus.Errorf("Failed to update secret %s, error: %v", secretName, err.Error())
 		return &OperationResponse{
-			Name:            *secret.Name,
+			Name:            secretName,
 			Message:         "Failed to update secret in AWS Secret Manager",
 			OperationStatus: OperationStatusFailure,
 			Error: &Error{
 				Message: "Failed to update secret in AWS Secret Manager",
-				Type:    errorType,
 				Reason:  err.Error(),
 			},
 		}, nil
 	}
-	logrus.Infof("Successfully updated secret %s", *secret.Name)
+	logrus.Infof("Successfully updated secret %s", secretName)
 	return &OperationResponse{
 		Name:            *output.Name,
 		Message:         "Successfully updated secret in AWS Secret Manager",
@@ -128,23 +126,21 @@ func Update(ctx context.Context, client *secretsmanager.Client, secret *Secret) 
 	}, nil
 }
 
-func HandleUpsert(ctx context.Context, client *secretsmanager.Client, secret *Secret, existingSecret *Secret) (*OperationResponse, error) {
+func HandleUpsert(ctx context.Context, client *secretsmanager.Client, secret Secret, existingSecret *Secret) (*OperationResponse, error) {
+	secretName := secret.Name
 	secretExists := false
-	if _, err := fetchSecretInternal(ctx, client, *secret.Name); err != nil {
+	if _, err := fetchSecretInternal(ctx, client, secretName); err != nil {
 		var resourceNotFoundErr *types.ResourceNotFoundException
 		if errors.As(err, &resourceNotFoundErr) {
-			logrus.Infof("Resource %s Doesn't exist : %v", *secret.Name, err.Error())
+			logrus.Infof("Resource %s Doesn't exist : %v", secretName, err.Error())
 		} else {
-			logrus.Errorf("Failed fetching secret %s, error : %v", *secret.Name, err.Error())
-			// TODO send error because failed with some other error like auth failed
-			errorType := getErrorType(err)
+			logrus.Errorf("Failed fetching secret %s, error : %v", secretName, err.Error())
 			return &OperationResponse{
-				Name:            *existingSecret.Name,
+				Name:            existingSecret.Name,
 				Message:         "Failed to find secret in AWS Secret Manager",
 				OperationStatus: OperationStatusFailure,
 				Error: &Error{
 					Message: "Failed to find secret in AWS Secret Manager",
-					Type:    errorType,
 					Reason:  err.Error(),
 				},
 			}, nil
@@ -165,34 +161,32 @@ func HandleUpsert(ctx context.Context, client *secretsmanager.Client, secret *Se
 	}
 
 	if existingSecret != nil {
-		oldFullSecretName := *existingSecret.Name
+		oldFullSecretName := existingSecret.Name
 		logrus.Debugf("Old secret name is %s", oldFullSecretName)
-		logrus.Debugf("New secret name is %s", *secret.Name)
-		if oldFullSecretName != "" && oldFullSecretName != *secret.Name {
+		logrus.Debugf("New secret name is %s", secretName)
+		if oldFullSecretName != "" && oldFullSecretName != secretName {
 			logrus.Infof("Old path of the secret %s is different than the current one %s. Deleting the old secret",
-				oldFullSecretName, *secret.Name)
-			if _, err := deleteSecret(ctx, client, existingSecret); err != nil {
+				oldFullSecretName, secretName)
+			if _, err := deleteSecret(ctx, client, *existingSecret); err != nil {
 				logrus.Warnf("Old path of the secret %s is different than the current one %s. Failed deleting the old secret. Error: %v",
-					oldFullSecretName, *secret.Name, err.Error())
+					oldFullSecretName, secretName, err.Error())
 			}
 		}
 	}
 	return response, nil
 }
 
-func HandleRename(ctx context.Context, client *secretsmanager.Client, secret *Secret, existingSecret *Secret) (*OperationResponse, error) {
-	logrus.Infof("Received request for renaming AWS Secret: %s", *secret.Name)
+func HandleRename(ctx context.Context, client *secretsmanager.Client, secret Secret, existingSecret *Secret) (*OperationResponse, error) {
+	logrus.Infof("Received request for renaming AWS Secret: %s", secret.Name)
 	//fetch existing record - if not found, nothing to update because we won't know what value to update
-	secretValue, err := fetchSecretInternal(ctx, client, *existingSecret.Name)
+	secretValue, err := fetchSecretInternal(ctx, client, existingSecret.Name)
 	if err != nil {
-		errorType := getErrorType(err)
 		return &OperationResponse{
-			Name:            *existingSecret.Name,
+			Name:            existingSecret.Name,
 			Message:         "Failed to find secret in AWS Secret Manager",
 			OperationStatus: OperationStatusFailure,
 			Error: &Error{
 				Message: "Failed to find secret in AWS Secret Manager",
-				Type:    errorType,
 				Reason:  err.Error(),
 			},
 		}, nil
@@ -202,10 +196,9 @@ func HandleRename(ctx context.Context, client *secretsmanager.Client, secret *Se
 	return HandleUpsert(ctx, client, secret, existingSecret)
 }
 
-// TODO rename and rewrite especially the json stuff
 func fetchSecretInternal(ctx context.Context, client *secretsmanager.Client, name string) (string, error) {
 	secretName, jsonKey := extractSecretInfo(name)
-	secretOutput, err := getSecret(ctx, client, &secretName)
+	secretOutput, err := getSecret(ctx, client, secretName)
 	if err != nil {
 		return "", err
 	}
@@ -216,9 +209,9 @@ func fetchSecretInternal(ctx context.Context, client *secretsmanager.Client, nam
 	return getValueFromJSON(secretValue, jsonKey), nil
 }
 
-func HandleValidateRef(ctx context.Context, client *secretsmanager.Client, name *string) (*ValidationResponse, error) {
-	logrus.Infof("Received request for validating AWS Secret reference: %s", *name)
-	_, err := fetchSecretInternal(ctx, client, *name)
+func HandleValidateRef(ctx context.Context, client *secretsmanager.Client, name string) (*ValidationResponse, error) {
+	logrus.Infof("Received request for validating AWS Secret reference: %s", name)
+	_, err := fetchSecretInternal(ctx, client, name)
 
 	if err != nil {
 		logrus.Errorf("Failed to validate AWS Secret reference, error %v", err.Error())
@@ -237,24 +230,23 @@ func HandleValidateRef(ctx context.Context, client *secretsmanager.Client, name 
 	}, nil
 }
 
-func HandleDelete(ctx context.Context, client *secretsmanager.Client, secret *Secret) (*OperationResponse, error) {
-	logrus.Infof("Received request for deleting AWS Secret: %s", *secret.Name)
+func HandleDelete(ctx context.Context, client *secretsmanager.Client, secret Secret) (*OperationResponse, error) {
+	secretName := secret.Name
+	logrus.Infof("Received request for deleting AWS Secret: %s", secretName)
 	output, err := deleteSecret(ctx, client, secret)
 	if err != nil {
-		errorType := getErrorType(err)
-		logrus.Errorf("Failed to delete secret %s, errorType: %s, error: %v", *secret.Name, errorType, err.Error())
+		logrus.Errorf("Failed to delete secret %s, error: %v", secretName, err.Error())
 		return &OperationResponse{
-			Name:            *secret.Name,
+			Name:            secretName,
 			Message:         "Failed to delete secret in AWS Secret Manager",
 			OperationStatus: OperationStatusFailure,
 			Error: &Error{
 				Message: "Failed to delete secret in AWS Secret Manager",
-				Type:    errorType,
 				Reason:  err.Error(),
 			},
 		}, nil
 	}
-	logrus.Infof("Successfully deleted secret %s", *secret.Name)
+	logrus.Infof("Successfully deleted secret %s", secretName)
 	return &OperationResponse{
 		Name:            *output.Name,
 		Message:         "Successfully deleted secret in AWS Secret Manager",

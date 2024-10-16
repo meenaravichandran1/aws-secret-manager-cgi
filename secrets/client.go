@@ -13,7 +13,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
-func New(secretManagerConfig *SecretManagerConfig) (*secretsmanager.Client, error) {
+func New(secretManagerConfig SecretManagerConfig) (*secretsmanager.Client, error) {
 	ctx := context.Background()
 	var awsConfig aws.Config
 	var err error
@@ -50,9 +50,9 @@ func loadIAMRoleConfig(ctx context.Context, region string, retryer func() aws.Re
 	return config.LoadDefaultConfig(ctx, config.WithRegion(region), config.WithRetryer(retryer))
 }
 
-func loadSTSRoleConfig(ctx context.Context, secretManagerConfig *SecretManagerConfig, retryer func() aws.Retryer) (aws.Config, error) {
+func loadSTSRoleConfig(ctx context.Context, secretManagerConfig SecretManagerConfig, retryer func() aws.Retryer) (aws.Config, error) {
 	logrus.Infof("Assuming STS role on runner: %s", secretManagerConfig.RoleArn)
-	credProvider, err := getSTSCredentialsProvider(ctx, *secretManagerConfig)
+	credProvider, err := getSTSCredentialsProvider(ctx, secretManagerConfig)
 	if err != nil {
 		return aws.Config{}, fmt.Errorf("failed to get STS credentials: %w", err)
 	}
@@ -64,7 +64,7 @@ func loadSTSRoleConfig(ctx context.Context, secretManagerConfig *SecretManagerCo
 	)
 }
 
-func loadStaticCredentialsConfig(ctx context.Context, secretManagerConfig *SecretManagerConfig, retryer func() aws.Retryer) (aws.Config, error) {
+func loadStaticCredentialsConfig(ctx context.Context, secretManagerConfig SecretManagerConfig, retryer func() aws.Retryer) (aws.Config, error) {
 	logrus.Info("Using static credentials")
 	// TODO check if below checks are needed
 	if secretManagerConfig.AccessKey == "" {
