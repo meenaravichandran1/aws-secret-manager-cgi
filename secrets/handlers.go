@@ -37,15 +37,17 @@ func HandleRequest(w http.ResponseWriter, r *http.Request) {
 	case "connect":
 		result, _ = HandleConnect(ctx, client, in.SecretParams.Secret.Name)
 	case "fetch":
-		result, _ = HandleFetch(ctx, client, *in.SecretParams.Secret.Name, in.SecretParams.Config)
+		result, _ = HandleFetch(ctx, client, in.SecretParams.Secret)
 	case "create":
-		result, _ = HandleUpsert(ctx, client, in.SecretParams.Secret, nil, in.SecretParams.Config)
+		result, _ = HandleUpsert(ctx, client, in.SecretParams.Secret, nil)
 	case "update":
-		result, _ = HandleUpsert(ctx, client, in.SecretParams.Secret, in.SecretParams.ExistingSecret, in.SecretParams.Config)
+		result, _ = HandleUpsert(ctx, client, in.SecretParams.Secret, in.SecretParams.ExistingSecret)
 	case "rename":
-		result, _ = HandleRename(ctx, client, in.SecretParams.Secret, in.SecretParams.ExistingSecret, in.SecretParams.Config)
+		result, _ = HandleRename(ctx, client, in.SecretParams.Secret, in.SecretParams.ExistingSecret)
 	case "delete":
-		result, _ = HandleDelete(ctx, client, in.SecretParams.Secret, in.SecretParams.Config)
+		result, _ = HandleDelete(ctx, client, in.SecretParams.Secret)
+	case "validate_ref":
+		result, _ = HandleValidateRef(ctx, client, in.SecretParams.Secret.Name)
 	default:
 		SendErrorResponse(w, errors.New("invalid action"), "The specified action is not supported", http.StatusBadRequest)
 		return

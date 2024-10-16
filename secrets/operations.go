@@ -2,6 +2,7 @@ package secrets
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
@@ -40,25 +41,39 @@ func HandleConnect(ctx context.Context, client *secretsmanager.Client, name *str
 	}, nil
 }
 
-func HandleFetch(ctx context.Context, client *secretsmanager.Client, name string, storeConfig *SecretManagerConfig) (*SecretResponse, error) {
-	logrus.Infof("Received request for fetching AWS Secret: %s", name)
-	secretName, jsonKey := extractSecretInfo(name)
+func HandleFetch(ctx context.Context, client *secretsmanager.Client, secret *Secret) (*SecretResponse, error) {
+	logrus.Infof("Received request for fetching AWS Secret: %s", *secret.Name)
+	secretName, jsonKey := extractSecretInfo(*secret.Name)
 	secretOutput, err := getSecret(ctx, client, &secretName)
 	if err != nil {
-		logrus.Errorf("Failed to fetch secret %s, error: %v", name, err.Error())
+		logrus.Errorf("Failed to fetch secret %s, error: %v", *secret.Name, err.Error())
 		return nil, fmt.Errorf("could not find secret key: %s. Failed with error %v", secretName, err.Error())
 	}
-	logrus.Infof("Successfully fetched secret %s", name)
+	logrus.Infof("Successfully fetched secret %s", *secret.Name)
 	secretValue := *secretOutput.SecretString
-	if !isValidJSON(secretValue) {
+
+	decodedSecretValue, err := decode(secretValue, secret.Base64, *secret.Name)
+	if !isValidJSON(decodedSecretValue) {
 		return &SecretResponse{
-			Value: secretValue,
+			Value: decodedSecretValue,
 		}, nil
 	}
-	valueOfKey := getValueFromJSON(secretValue, jsonKey)
+	valueOfKey := getValueFromJSON(decodedSecretValue, jsonKey)
 	return &SecretResponse{
 		Value: valueOfKey,
 	}, nil
+}
+
+func decode(s string, decode bool, name string) (string, error) {
+	if decode {
+		logrus.Infof("Decoding secret %s", name)
+		decoded, err := base64.StdEncoding.DecodeString(s)
+		if err != nil {
+			return "", fmt.Errorf("error occurred when decoding base64 secret: %s. Failed with error %v", name, err.Error())
+		}
+		return string(decoded), nil
+	}
+	return s, nil
 }
 
 func Create(ctx context.Context, client *secretsmanager.Client, secret *Secret) (*OperationResponse, error) {
@@ -113,7 +128,7 @@ func Update(ctx context.Context, client *secretsmanager.Client, secret *Secret) 
 	}, nil
 }
 
-func HandleUpsert(ctx context.Context, client *secretsmanager.Client, secret *Secret, existingSecret *Secret, storeConfig *SecretManagerConfig) (*OperationResponse, error) {
+func HandleUpsert(ctx context.Context, client *secretsmanager.Client, secret *Secret, existingSecret *Secret) (*OperationResponse, error) {
 	secretExists := false
 	if _, err := fetchSecretInternal(ctx, client, *secret.Name); err != nil {
 		var resourceNotFoundErr *types.ResourceNotFoundException
@@ -165,7 +180,7 @@ func HandleUpsert(ctx context.Context, client *secretsmanager.Client, secret *Se
 	return response, nil
 }
 
-func HandleRename(ctx context.Context, client *secretsmanager.Client, secret *Secret, existingSecret *Secret, storeConfig *SecretManagerConfig) (*OperationResponse, error) {
+func HandleRename(ctx context.Context, client *secretsmanager.Client, secret *Secret, existingSecret *Secret) (*OperationResponse, error) {
 	logrus.Infof("Received request for renaming AWS Secret: %s", *secret.Name)
 	//fetch existing record - if not found, nothing to update because we won't know what value to update
 	secretValue, err := fetchSecretInternal(ctx, client, *existingSecret.Name)
@@ -184,7 +199,7 @@ func HandleRename(ctx context.Context, client *secretsmanager.Client, secret *Se
 	}
 	secret.Plaintext = &secretValue
 	// upsert with new secret
-	return HandleUpsert(ctx, client, secret, existingSecret, storeConfig)
+	return HandleUpsert(ctx, client, secret, existingSecret)
 }
 
 // TODO rename and rewrite especially the json stuff
@@ -201,7 +216,28 @@ func fetchSecretInternal(ctx context.Context, client *secretsmanager.Client, nam
 	return getValueFromJSON(secretValue, jsonKey), nil
 }
 
-func HandleDelete(ctx context.Context, client *secretsmanager.Client, secret *Secret, storeConfig *SecretManagerConfig) (*OperationResponse, error) {
+func HandleValidateRef(ctx context.Context, client *secretsmanager.Client, name *string) (*ValidationResponse, error) {
+	logrus.Infof("Received request for validating AWS Secret reference: %s", *name)
+	_, err := fetchSecretInternal(ctx, client, *name)
+
+	if err != nil {
+		logrus.Errorf("Failed to validate AWS Secret reference, error %v", err.Error())
+		return &ValidationResponse{
+			IsValid: false,
+			Error: &Error{
+				Message: "Failed validating AWS Secret reference",
+				Reason:  err.Error(),
+			},
+		}, nil
+	}
+	logrus.Info("Successfully validated AWS Secret reference")
+	return &ValidationResponse{
+		IsValid: true,
+		Error:   nil,
+	}, nil
+}
+
+func HandleDelete(ctx context.Context, client *secretsmanager.Client, secret *Secret) (*OperationResponse, error) {
 	logrus.Infof("Received request for deleting AWS Secret: %s", *secret.Name)
 	output, err := deleteSecret(ctx, client, secret)
 	if err != nil {
