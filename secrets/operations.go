@@ -76,7 +76,7 @@ func decode(s string, decode bool, name string) (string, error) {
 	return s, nil
 }
 
-func Create(ctx context.Context, client *secretsmanager.Client, secret *Secret) (*OperationResponse, error) {
+func HandleCreate(ctx context.Context, client *secretsmanager.Client, secret *Secret) (*OperationResponse, error) {
 	logrus.Infof("Received request for creating AWS Secret: %s", *secret.Name)
 	output, err := createSecret(ctx, client, secret)
 	if err != nil {
@@ -156,7 +156,7 @@ func HandleUpsert(ctx context.Context, client *secretsmanager.Client, secret *Se
 	var err error
 	var response *OperationResponse
 	if !secretExists {
-		response, err = Create(ctx, client, secret)
+		response, err = HandleCreate(ctx, client, secret)
 	} else {
 		response, err = Update(ctx, client, secret)
 	}

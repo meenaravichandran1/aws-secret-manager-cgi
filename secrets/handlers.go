@@ -39,7 +39,7 @@ func HandleRequest(w http.ResponseWriter, r *http.Request) {
 	case "fetch":
 		result, _ = HandleFetch(ctx, client, in.SecretParams.Secret)
 	case "create":
-		result, _ = HandleUpsert(ctx, client, in.SecretParams.Secret, nil)
+		result, _ = HandleCreate(ctx, client, in.SecretParams.Secret)
 	case "update":
 		result, _ = HandleUpsert(ctx, client, in.SecretParams.Secret, in.SecretParams.ExistingSecret)
 	case "rename":
