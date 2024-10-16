@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/retry"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/secretsmanager"
@@ -21,15 +22,15 @@ func New(secretManagerConfig *SecretManagerConfig) (*secretsmanager.Client, erro
 		secretManagerConfig.Region = "us-east-1"
 	}
 
+	retryer := createRetryer()
 	switch {
 	case secretManagerConfig.AssumeIamRoleOnRunner:
-		awsConfig, err = loadIAMRoleConfig(ctx, secretManagerConfig.Region)
+		awsConfig, err = loadIAMRoleConfig(ctx, secretManagerConfig.Region, retryer)
 	case secretManagerConfig.AssumeStsRoleOnRunner:
-		awsConfig, err = loadSTSRoleConfig(ctx, secretManagerConfig)
+		awsConfig, err = loadSTSRoleConfig(ctx, secretManagerConfig, retryer)
 	default:
-		awsConfig, err = loadStaticCredentialsConfig(ctx, secretManagerConfig)
+		awsConfig, err = loadStaticCredentialsConfig(ctx, secretManagerConfig, retryer)
 	}
-
 	if err != nil {
 		logrus.Errorf("Failed to configure AWS client: %v", err)
 		return nil, err
@@ -38,12 +39,18 @@ func New(secretManagerConfig *SecretManagerConfig) (*secretsmanager.Client, erro
 	return secretsmanager.NewFromConfig(awsConfig), nil
 }
 
-func loadIAMRoleConfig(ctx context.Context, region string) (aws.Config, error) {
-	logrus.Info("Assuming IAM role on runner")
-	return config.LoadDefaultConfig(ctx, config.WithRegion(region))
+func createRetryer() func() aws.Retryer {
+	return func() aws.Retryer {
+		return retry.NewStandard()
+	}
 }
 
-func loadSTSRoleConfig(ctx context.Context, secretManagerConfig *SecretManagerConfig) (aws.Config, error) {
+func loadIAMRoleConfig(ctx context.Context, region string, retryer func() aws.Retryer) (aws.Config, error) {
+	logrus.Info("Assuming IAM role on runner")
+	return config.LoadDefaultConfig(ctx, config.WithRegion(region), config.WithRetryer(retryer))
+}
+
+func loadSTSRoleConfig(ctx context.Context, secretManagerConfig *SecretManagerConfig, retryer func() aws.Retryer) (aws.Config, error) {
 	logrus.Infof("Assuming STS role on runner: %s", secretManagerConfig.RoleArn)
 	credProvider, err := getSTSCredentialsProvider(ctx, *secretManagerConfig)
 	if err != nil {
@@ -53,10 +60,11 @@ func loadSTSRoleConfig(ctx context.Context, secretManagerConfig *SecretManagerCo
 	return config.LoadDefaultConfig(ctx,
 		config.WithRegion(secretManagerConfig.Region),
 		config.WithCredentialsProvider(credProvider),
+		config.WithRetryer(retryer),
 	)
 }
 
-func loadStaticCredentialsConfig(ctx context.Context, secretManagerConfig *SecretManagerConfig) (aws.Config, error) {
+func loadStaticCredentialsConfig(ctx context.Context, secretManagerConfig *SecretManagerConfig, retryer func() aws.Retryer) (aws.Config, error) {
 	logrus.Info("Using static credentials")
 	// TODO check if below checks are needed
 	if secretManagerConfig.AccessKey == "" {
@@ -69,6 +77,7 @@ func loadStaticCredentialsConfig(ctx context.Context, secretManagerConfig *Secre
 	return config.LoadDefaultConfig(ctx,
 		config.WithRegion(secretManagerConfig.Region),
 		config.WithCredentialsProvider(credProvider),
+		config.WithRetryer(retryer),
 	)
 }
 
