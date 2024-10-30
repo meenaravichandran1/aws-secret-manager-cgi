@@ -2,20 +2,36 @@ package main
 
 import (
 	"aws-secret-manager-cgi/secrets"
-	log "github.com/sirupsen/logrus"
+	"context"
+	"github.com/harness/runner/delegateshell/client"
+	"github.com/harness/runner/logger/gcplogger"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"net/http/cgi"
 )
 
 func main() {
-	log.SetFormatter(&log.TextFormatter{
-		FullTimestamp: true,
+	//logrus.SetFormatter(&logrus.TextFormatter{
+	//	FullTimestamp: true,
+	//})
+
+	// TODO if remote logging is enabled in env var, set the bool from env var
+	remoteLogger := gcplogger.NewGCPLoggerWithToken(logrus.StandardLogger(), &client.AccessTokenBean{
+		ProjectId:            "qa-setup",
+		TokenValue:           "replaced",
+		ExpirationTimeMillis: 1730326818617,
 	})
 
+	// TODO set the bool from env var
+	_, err := remoteLogger.StartGcpLoggerWithToken(context.TODO())
+	if err != nil {
+		return
+	}
+
 	http.HandleFunc("/", secrets.HandleRequest)
-	err := cgi.Serve(http.DefaultServeMux)
+	err = cgi.Serve(http.DefaultServeMux)
 
 	if err != nil {
-		log.WithError(err).Fatal("Failed to serve CGI")
+		logrus.WithError(err).Fatal("Failed to serve CGI")
 	}
 }
