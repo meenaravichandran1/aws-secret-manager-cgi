@@ -13,7 +13,7 @@ import (
 )
 
 type Handler struct {
-	RemoteLogger *gcplogger.GCPLoggerWithToken
+	RemoteLogger *gcplogger.WithToken
 }
 
 func (h *Handler) HandleRequest(w http.ResponseWriter, r *http.Request) {
