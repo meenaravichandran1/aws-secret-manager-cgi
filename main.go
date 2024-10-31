@@ -15,6 +15,8 @@ import (
 func main() {
 	handler := &secrets.Handler{}
 
+	logrus.SetReportCaller(true)
+
 	isRemoteLoggingEnabled, err := strconv.ParseBool(os.Getenv("ENABLE_REMOTE_LOGGING"))
 	if err != nil {
 		isRemoteLoggingEnabled = false
@@ -25,12 +27,13 @@ func main() {
 			logrus.Println("Environment variable PROJECT_ID is not set. Cannot publish logs to remote")
 			return
 		}
-
+		logrus.Printf("Porject id is %s", projectId)
 		accessToken := os.Getenv("ACCESS_TOKEN")
 		if accessToken == "" {
 			logrus.Println("Environment variable ACCESS_TOKEN is not set. Cannot publish logs to remote")
 			return
 		}
+		logrus.Printf("Access token is %s", accessToken)
 
 		expiresAtStr := os.Getenv("EXPIRES_AT")
 		if expiresAtStr == "" {
@@ -42,6 +45,7 @@ func main() {
 			logrus.Printf("Failed to parse EXPIRES_AT: %v", err)
 			return
 		}
+		logrus.Printf("ExpiresAt is %d", expiresAt)
 
 		remoteLogger := gcplogger.NewGCPLoggerWithToken(logrus.StandardLogger(), &client.AccessTokenBean{
 			ProjectId:            projectId,
