@@ -56,7 +56,6 @@ func main() {
 			return
 		}
 		logrus.Infoln("Publishing cgi logs to remote")
-		logrus.Warnln("Test warn message...")
 		handler.RemoteLogger = remoteLogger
 	}
 
