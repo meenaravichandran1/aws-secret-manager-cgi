@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/harness/runner/logger/gcplogger"
+	"github.com/sirupsen/logrus"
 	"net/http"
 	"strings"
 )
@@ -60,7 +61,10 @@ func (h *Handler) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if h.RemoteLogger != nil {
-		h.RemoteLogger.StopGcpLogger()
+		_, err := h.RemoteLogger.StopGcpLogger()
+		if err != nil {
+			logrus.WithError(err).Error("Cannot close remote logger")
+		}
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(result)
