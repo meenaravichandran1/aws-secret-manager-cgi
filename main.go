@@ -16,6 +16,7 @@ func main() {
 	handler := &secrets.Handler{}
 
 	logrus.SetReportCaller(true)
+	logrus.SetFormatter(&logrus.JSONFormatter{})
 
 	isRemoteLoggingEnabled, err := strconv.ParseBool(os.Getenv("ENABLE_REMOTE_LOGGING"))
 	if err != nil {
