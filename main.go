@@ -20,7 +20,6 @@ func main() {
 		isRemoteLoggingEnabled = false
 	}
 	if isRemoteLoggingEnabled {
-
 		projectId := os.Getenv("PROJECT_ID")
 		if projectId == "" {
 			logrus.Println("Environment variable PROJECT_ID is not set. Cannot publish logs to remote")
@@ -54,7 +53,7 @@ func main() {
 		if err != nil {
 			return
 		}
-
+		logrus.Infoln("Publishing cgi logs to remote")
 		handler.RemoteLogger = remoteLogger
 	}
 
