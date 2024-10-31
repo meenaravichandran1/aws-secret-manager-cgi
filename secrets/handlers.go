@@ -59,7 +59,9 @@ func (h *Handler) HandleRequest(w http.ResponseWriter, r *http.Request) {
 		SendErrorResponse(w, errors.New("invalid action"), fmt.Sprintf("The specified action %s is not supported", operation), http.StatusBadRequest)
 		return
 	}
-	h.RemoteLogger.StopGcpLogger()
+	if h.RemoteLogger != nil {
+		h.RemoteLogger.StopGcpLogger()
+	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(result)
 }

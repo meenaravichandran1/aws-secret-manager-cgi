@@ -23,41 +23,7 @@ func main() {
 		isRemoteLoggingEnabled = false
 	}
 	if isRemoteLoggingEnabled {
-		projectId := os.Getenv("PROJECT_ID")
-		if projectId == "" {
-			logrus.Println("Environment variable PROJECT_ID is not set. Cannot publish logs to remote")
-			return
-		}
-
-		accessToken := os.Getenv("ACCESS_TOKEN")
-		if accessToken == "" {
-			logrus.Println("Environment variable ACCESS_TOKEN is not set. Cannot publish logs to remote")
-			return
-		}
-
-		expiresAtStr := os.Getenv("EXPIRES_AT")
-		if expiresAtStr == "" {
-			logrus.Println("Environment variable EXPIRES_AT is not set. Cannot publish logs to remote")
-			return
-		}
-		expiresAt, err := strconv.ParseInt(os.Getenv("EXPIRES_AT"), 10, 64)
-		if err != nil {
-			logrus.Printf("Failed to parse EXPIRES_AT: %v", err)
-			return
-		}
-
-		remoteLogger := gcplogger.NewGCPLoggerWithToken(logrus.StandardLogger(), &client.AccessTokenBean{
-			ProjectId:            projectId,
-			TokenValue:           accessToken,
-			ExpirationTimeMillis: expiresAt,
-		})
-
-		_, err = remoteLogger.StartGcpLoggerWithToken(context.TODO())
-		if err != nil {
-			return
-		}
-		logrus.Infoln("Publishing cgi logs to remote")
-		handler.RemoteLogger = remoteLogger
+		handler.RemoteLogger = startRemoteLogger()
 	}
 
 	http.HandleFunc("/", handler.HandleRequest)
@@ -66,4 +32,42 @@ func main() {
 	if err != nil {
 		logrus.WithError(err).Fatal("Failed to serve CGI")
 	}
+}
+
+func startRemoteLogger() *gcplogger.WithToken {
+	projectId := os.Getenv("PROJECT_ID")
+	if projectId == "" {
+		logrus.Println("Environment variable PROJECT_ID is not set. Cannot publish logs to remote")
+		return nil
+	}
+
+	accessToken := os.Getenv("ACCESS_TOKEN")
+	if accessToken == "" {
+		logrus.Println("Environment variable ACCESS_TOKEN is not set. Cannot publish logs to remote")
+		return nil
+	}
+
+	expiresAtStr := os.Getenv("EXPIRES_AT")
+	if expiresAtStr == "" {
+		logrus.Println("Environment variable EXPIRES_AT is not set. Cannot publish logs to remote")
+		return nil
+	}
+	expiresAt, err := strconv.ParseInt(os.Getenv("EXPIRES_AT"), 10, 64)
+	if err != nil {
+		logrus.Printf("Failed to parse EXPIRES_AT: %v", err)
+		return nil
+	}
+
+	remoteLogger := gcplogger.NewGCPLoggerWithToken(logrus.StandardLogger(), &client.AccessTokenBean{
+		ProjectId:            projectId,
+		TokenValue:           accessToken,
+		ExpirationTimeMillis: expiresAt,
+	})
+
+	_, err = remoteLogger.StartGcpLoggerWithToken(context.TODO())
+	if err != nil {
+		return nil
+	}
+	logrus.Infoln("Publishing cgi logs to remote")
+	return remoteLogger
 }
