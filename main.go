@@ -58,7 +58,8 @@ func startRemoteLogger() *gcplogger.WithToken {
 		return nil
 	}
 
-	remoteLogger := gcplogger.NewGCPLoggerWithToken(logrus.StandardLogger(), &client.AccessTokenBean{
+	additionalFields := map[string]string{"service": "aws-secret-manager-cgi"}
+	remoteLogger := gcplogger.NewGCPLoggerWithToken(logrus.StandardLogger(), additionalFields, &client.AccessTokenBean{
 		ProjectId:            projectId,
 		TokenValue:           accessToken,
 		ExpirationTimeMillis: expiresAt,
