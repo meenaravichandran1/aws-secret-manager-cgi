@@ -7,17 +7,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/harness/runner/logger/gcplogger"
-	"github.com/sirupsen/logrus"
 	"net/http"
 	"strings"
 )
 
-type Handler struct {
-	RemoteLogger *gcplogger.WithToken
-}
-
-func (h *Handler) HandleRequest(w http.ResponseWriter, r *http.Request) {
+func HandleRequest(w http.ResponseWriter, r *http.Request) {
 	in := new(common.Input)
 
 	if err := json.NewDecoder(r.Body).Decode(in); err != nil {
@@ -59,12 +53,6 @@ func (h *Handler) HandleRequest(w http.ResponseWriter, r *http.Request) {
 	default:
 		SendErrorResponse(w, errors.New("invalid action"), fmt.Sprintf("The specified action %s is not supported", operation), http.StatusBadRequest)
 		return
-	}
-	if h.RemoteLogger != nil {
-		_, err := h.RemoteLogger.StopGcpLogger()
-		if err != nil {
-			logrus.WithError(err).Error("Cannot close remote logger")
-		}
 	}
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(result)
